@@ -2,10 +2,11 @@
 pragma solidity ^0.8.15;
 
 import 'forge-std/Test.sol';
+import 'forge-std/Vm.sol';
+
 import {Permit2} from 'permit2/src/Permit2.sol';
 import {ERC20} from 'solmate/src/tokens/ERC20.sol';
 import {IUniswapV2Factory} from '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
-import {UniswapV2Factory} from '@uniswap/v2-core/contracts/UniswapV2Factory.sol';
 import {IUniswapV2Pair} from '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 import {UniversalRouter} from '../../contracts/UniversalRouter.sol';
 import {Payments} from '../../contracts/modules/Payments.sol';
@@ -16,28 +17,30 @@ import {RouterParameters} from '../../contracts/base/RouterImmutables.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol';
 import '@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol';
 
-abstract contract UniswapV2Test is Test {
+abstract contract ZkFair is Test {
     address constant RECIPIENT = address(10);
     uint256 constant AMOUNT = 1 ether;
     uint256 constant BALANCE = 100000 ether;
-    // IUniswapV2Factory constant FACTORY = IUniswapV2Factory(0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f);
+    // IUniswapV2Factory constant factory = IUniswapV2Factory();
     // ERC20 constant WETH9 = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     // Permit2 constant PERMIT2 = Permit2(0x000000000022D473030F116dDEE9F6B43aC78BA3);
 
     address constant FROM = address(1234);
 
     UniversalRouter router;
-    UniswapV2Factory factory;
+    IUniswapV2Factory factory;
     Permit2 permit2;
 
     IUniswapV2Pair pairToken0Token1;
     IUniswapV2Pair pairToken1Token2;
+    IUniswapV2Pair pairToken2Token3;
 
     function setUp() public virtual {
-        vm.createSelectFork(vm.envString('FORK_URL'), 16000000);
+        // vm.createSelectFork(vm.envString('FORK_URL'), 16000000);
         setUpTokens();
 
-        factory = new UniswapV2Factory(address(0));
+        address _f = deployCode('UniswapV2Factory.sol:UniswapV2Factory', abi.encode(address(0)));
+        factory = IUniswapV2Factory(_f);
         permit2 = new Permit2();
 
         RouterParameters memory params = RouterParameters({
@@ -65,45 +68,86 @@ abstract contract UniswapV2Test is Test {
         router = new UniversalRouter(params);
 
         // pair doesn't exist, make a mock one
-        if (factory.getPair(token0(), token1()) == address(0)) {
-            address pair = factory.createPair(token0(), token1());
-            deal(token0(), pair, 100 ether);
-            deal(token1(), pair, 100 ether);
-            IUniswapV2Pair(pair).sync();
-            pairToken0Token1 = IUniswapV2Pair(pair);
-        }
-        if (factory.getPair(token1(), token2()) == address(0)) {
-            address pair = factory.createPair(token1(), token2());
-            deal(token1(), pair, 100 ether);
-            deal(token2(), pair, 100 ether);
-            IUniswapV2Pair(pair).sync();
-            pairToken1Token2 = IUniswapV2Pair(pair);
-        }
+        address pair1 = factory.createPair(token0(), token1());
+        deal(token0(), pair1, 100 ether);
+        deal(token1(), pair1, 100 ether);
+        IUniswapV2Pair(pair1).sync();
+        pairToken0Token1 = IUniswapV2Pair(pair1);
+
+        address pair2 = factory.createPair(token1(), token2());
+        deal(token1(), pair2, 100 ether);
+        deal(token2(), pair2, 100 ether);
+        IUniswapV2Pair(pair2).sync();
+        pairToken1Token2 = IUniswapV2Pair(pair2);
+
+        address pair3 = factory.createPair(token2(), token3());
+        deal(token2(), pair3, 100 ether);
+        deal(token3(), pair3, 100 ether);
+        IUniswapV2Pair(pair3).sync();
+        pairToken2Token3 = IUniswapV2Pair(pair3);
 
         vm.startPrank(FROM);
         deal(FROM, BALANCE);
         deal(token0(), FROM, BALANCE);
         deal(token1(), FROM, BALANCE);
         deal(token2(), FROM, BALANCE);
+        deal(token3(), FROM, BALANCE);
         ERC20(token0()).approve(address(permit2), type(uint256).max);
         ERC20(token1()).approve(address(permit2), type(uint256).max);
         ERC20(token2()).approve(address(permit2), type(uint256).max);
+        ERC20(token3()).approve(address(permit2), type(uint256).max);
         permit2.approve(token0(), address(router), type(uint160).max, type(uint48).max);
         permit2.approve(token1(), address(router), type(uint160).max, type(uint48).max);
         permit2.approve(token2(), address(router), type(uint160).max, type(uint48).max);
+        permit2.approve(token3(), address(router), type(uint160).max, type(uint48).max);
     }
 
-    function testExactInput0For2() public {
+    function testExactInput0For1For2For3() public {
         bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V2_SWAP_EXACT_IN)));
         bytes[] memory path = new bytes[](1);
-        path[0] = abi.encodePacked(token0, pairToken0Token1, uint16(50), token1, pairToken1Token2, uint16(40), token2);
+        path[0] = abi.encodePacked(
+            token0(),
+            pairToken0Token1,
+            uint16(50),
+            token1(),
+            pairToken1Token2,
+            uint16(40),
+            token2(),
+            pairToken2Token3,
+            uint16(30),
+            token3()
+        );
 
         bytes[] memory inputs = new bytes[](1);
-        inputs[0] = abi.encodePacked(Constants.MSG_SENDER, AMOUNT, 0, true, path);
+        inputs[0] = abi.encodePacked(Constants.MSG_SENDER, AMOUNT, uint256(0), true, path[0]);
+
+        router.execute(commands, inputs);
+        assertEq(ERC20(token0()).balanceOf(FROM), BALANCE - AMOUNT);
+        assertGt(ERC20(token3()).balanceOf(FROM), BALANCE);
+    }
+
+    function testExactInput0For1For2() public {
+        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V2_SWAP_EXACT_IN)));
+        bytes[] memory path = new bytes[](1);
+        path[0] = abi.encodePacked(
+            token0(),
+            pairToken0Token1,
+            uint16(50),
+            token1(),
+            pairToken1Token2,
+            uint16(40),
+            token2()
+        );
+
+        bytes[] memory inputs = new bytes[](1);
+        inputs[0] = abi.encodePacked(Constants.MSG_SENDER, AMOUNT, uint256(0), true, path[0]);
+
+        uint256 token1Balance = ERC20(token1()).balanceOf(FROM);
 
         router.execute(commands, inputs);
         assertEq(ERC20(token0()).balanceOf(FROM), BALANCE - AMOUNT);
         assertGt(ERC20(token2()).balanceOf(FROM), BALANCE);
+        assertEq(ERC20(token1()).balanceOf(FROM), token1Balance);
     }
 
     //    function testExactInput1For0() public {
