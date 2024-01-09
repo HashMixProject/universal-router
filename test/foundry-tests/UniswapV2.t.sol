@@ -177,6 +177,7 @@ abstract contract UniswapV2Test is Test {
     }
 
     function token0() internal virtual returns (address);
+
     function token1() internal virtual returns (address);
 
     function setUpTokens() internal virtual {}
