@@ -25,7 +25,7 @@ abstract contract DeployUniversalRouter is Script {
 
         // deploy permit2 if it isnt yet deployed
         if (params.permit2 == address(0)) {
-            address permit2 = address(new Permit2{salt: SALT}());
+            address permit2 = address(new Permit2());
             params.permit2 = permit2;
             console2.log('Permit2 Deployed:', address(permit2));
         }

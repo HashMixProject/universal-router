@@ -5,6 +5,9 @@ import 'forge-std/Test.sol';
 import 'forge-std/Vm.sol';
 
 import {Permit2} from 'permit2/src/Permit2.sol';
+import {IAllowanceTransfer} from 'permit2/src/interfaces/IAllowanceTransfer.sol';
+import {PermitHash} from 'permit2/src/libraries/PermitHash.sol';
+import {EIP712} from 'permit2/src/EIP712.sol';
 import {ERC20} from 'solmate/src/tokens/ERC20.sol';
 import {IUniswapV2Factory} from '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 import {IUniswapV2Pair} from '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
@@ -18,6 +21,8 @@ import '@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol';
 import '@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol';
 
 abstract contract ZkFair is Test {
+    using PermitHash for IAllowanceTransfer.PermitSingle;
+
     address constant RECIPIENT = address(10);
     uint256 constant AMOUNT = 1 ether;
     uint256 constant BALANCE = 100000 ether;
@@ -25,7 +30,8 @@ abstract contract ZkFair is Test {
     // ERC20 constant WETH9 = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     // Permit2 constant PERMIT2 = Permit2(0x000000000022D473030F116dDEE9F6B43aC78BA3);
 
-    address constant FROM = address(1234);
+    address FROM;
+    uint256 FROM_Priv;
 
     UniversalRouter router;
     IUniswapV2Factory factory;
@@ -34,9 +40,13 @@ abstract contract ZkFair is Test {
     IUniswapV2Pair pairToken0Token1;
     IUniswapV2Pair pairToken1Token2;
     IUniswapV2Pair pairToken2Token3;
+    IUniswapV2Pair pairToken0Token3;
 
     function setUp() public virtual {
         // vm.createSelectFork(vm.envString('FORK_URL'), 16000000);
+        //
+        //
+        (FROM, FROM_Priv) = makeAddrAndKey('1234');
         setUpTokens();
 
         address _f = deployCode('UniswapV2Factory.sol:UniswapV2Factory', abi.encode(address(0)));
@@ -86,6 +96,12 @@ abstract contract ZkFair is Test {
         IUniswapV2Pair(pair3).sync();
         pairToken2Token3 = IUniswapV2Pair(pair3);
 
+        address pair4 = factory.createPair(token0(), token3());
+        deal(token0(), pair4, 100 ether);
+        deal(token3(), pair4, 100 ether);
+        IUniswapV2Pair(pair4).sync();
+        pairToken0Token3 = IUniswapV2Pair(pair4);
+
         vm.startPrank(FROM);
         deal(FROM, BALANCE);
         deal(token0(), FROM, BALANCE);
@@ -96,16 +112,37 @@ abstract contract ZkFair is Test {
         ERC20(token1()).approve(address(permit2), type(uint256).max);
         ERC20(token2()).approve(address(permit2), type(uint256).max);
         ERC20(token3()).approve(address(permit2), type(uint256).max);
-        permit2.approve(token0(), address(router), type(uint160).max, type(uint48).max);
-        permit2.approve(token1(), address(router), type(uint160).max, type(uint48).max);
-        permit2.approve(token2(), address(router), type(uint160).max, type(uint48).max);
-        permit2.approve(token3(), address(router), type(uint160).max, type(uint48).max);
+        // permit2.approve(token0(), address(router), type(uint160).max, type(uint48).max);
+        //        permit2.approve(token1(), address(router), type(uint160).max, type(uint48).max);
+        //        permit2.approve(token2(), address(router), type(uint160).max, type(uint48).max);
+        //        permit2.approve(token3(), address(router), type(uint160).max, type(uint48).max);
     }
 
     function testExactInput0For1For2For3() public {
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V2_SWAP_EXACT_IN)));
-        bytes[] memory path = new bytes[](1);
-        path[0] = abi.encodePacked(
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.PERMIT2_PERMIT)),
+            bytes1(uint8(Commands.V2_SWAP_EXACT_IN))
+        );
+
+        (, , uint48 nonce) = permit2.allowance(FROM, token0(), address(router));
+
+        IAllowanceTransfer.PermitSingle memory permitSingle = IAllowanceTransfer.PermitSingle({
+            details: IAllowanceTransfer.PermitDetails({
+                token: token0(),
+                amount: uint160(AMOUNT),
+                expiration: uint48(block.timestamp + 1000),
+                nonce: nonce
+            }),
+            spender: address(router),
+            sigDeadline: block.timestamp + 1000
+        });
+
+        bytes32 digest = keccak256(abi.encodePacked('\x19\x01', permit2.DOMAIN_SEPARATOR(), permitSingle.hash()));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(FROM_Priv, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        bytes memory commandsData0 = abi.encode(permitSingle, signature);
+        bytes memory path = abi.encodePacked(
             token0(),
             pairToken0Token1,
             uint16(50),
@@ -118,35 +155,65 @@ abstract contract ZkFair is Test {
             token3()
         );
 
-        bytes[] memory inputs = new bytes[](1);
-        inputs[0] = abi.encodePacked(Constants.MSG_SENDER, AMOUNT, uint256(0), true, path[0]);
+        bytes[] memory inputs = new bytes[](2);
+        inputs[0] = commandsData0;
+        inputs[1] = abi.encodePacked(Constants.MSG_SENDER, AMOUNT, uint256(0), true, path);
 
         router.execute(commands, inputs);
+
         assertEq(ERC20(token0()).balanceOf(FROM), BALANCE - AMOUNT);
         assertGt(ERC20(token3()).balanceOf(FROM), BALANCE);
     }
 
-    function testExactInput0For1For2() public {
-        bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V2_SWAP_EXACT_IN)));
-        bytes[] memory path = new bytes[](1);
-        path[0] = abi.encodePacked(
+    function testExactInput0For3_0For1For2For3() public {
+        (, , uint48 nonce) = permit2.allowance(FROM, token0(), address(router));
+
+        IAllowanceTransfer.PermitSingle memory permitSingle = IAllowanceTransfer.PermitSingle({
+            details: IAllowanceTransfer.PermitDetails({
+                token: token0(),
+                amount: uint160(AMOUNT * 2),
+                expiration: uint48(block.timestamp + 1000),
+                nonce: nonce
+            }),
+            spender: address(router),
+            sigDeadline: block.timestamp + 1000
+        });
+
+        bytes32 digest = keccak256(abi.encodePacked('\x19\x01', permit2.DOMAIN_SEPARATOR(), permitSingle.hash()));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(FROM_Priv, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        bytes memory commands = abi.encodePacked(
+            bytes1(uint8(Commands.PERMIT2_PERMIT)),
+            bytes1(uint8(Commands.V2_SWAP_EXACT_IN)),
+            bytes1(uint8(Commands.V2_SWAP_EXACT_IN))
+        );
+        bytes[] memory commandsData = new bytes[](3);
+        commandsData[0] = abi.encode(permitSingle, signature);
+
+        bytes memory path = abi.encodePacked(token0(), pairToken0Token3, uint16(50), token3());
+        commandsData[1] = abi.encodePacked(Constants.MSG_SENDER, AMOUNT, uint256(0), true, path);
+
+        bytes memory path2 = abi.encodePacked(
             token0(),
             pairToken0Token1,
             uint16(50),
             token1(),
             pairToken1Token2,
             uint16(40),
-            token2()
+            token2(),
+            pairToken2Token3,
+            uint16(30),
+            token3()
         );
 
-        bytes[] memory inputs = new bytes[](1);
-        inputs[0] = abi.encodePacked(Constants.MSG_SENDER, AMOUNT, uint256(0), true, path[0]);
+        commandsData[2] = abi.encodePacked(Constants.MSG_SENDER, AMOUNT, uint256(0), true, path2);
 
         uint256 token1Balance = ERC20(token1()).balanceOf(FROM);
 
-        router.execute(commands, inputs);
-        assertEq(ERC20(token0()).balanceOf(FROM), BALANCE - AMOUNT);
-        assertGt(ERC20(token2()).balanceOf(FROM), BALANCE);
+        router.execute(commands, commandsData);
+        assertEq(ERC20(token0()).balanceOf(FROM), BALANCE - AMOUNT * 2);
+        assertGt(ERC20(token3()).balanceOf(FROM), BALANCE);
         assertEq(ERC20(token1()).balanceOf(FROM), token1Balance);
     }
 
