@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.15;
 
-import 'forge-std/Test.sol';
-import 'forge-std/Vm.sol';
+import {Test} from 'forge-std/Test.sol';
+import {Vm} from 'forge-std/Vm.sol';
+// import {CommonBase} from 'forge-std/Base.sol';
+import {StdCheats} from 'forge-std/StdCheats.sol';
+import 'forge-std/console2.sol';
 
 import {Permit2} from 'permit2/src/Permit2.sol';
 import {IAllowanceTransfer} from 'permit2/src/interfaces/IAllowanceTransfer.sol';
@@ -116,6 +119,30 @@ abstract contract ZkFair is Test {
         //        permit2.approve(token1(), address(router), type(uint160).max, type(uint48).max);
         //        permit2.approve(token2(), address(router), type(uint160).max, type(uint48).max);
         //        permit2.approve(token3(), address(router), type(uint160).max, type(uint48).max);
+    }
+
+    function testSignPermit() public {
+        uint256 key = 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d;
+        // deployCodeTo('Permit2.sol/Permit2.json', 0xC7f2Cf4845C6db0e1a1e91ED41Bcd0FcC1b0E141);
+        address tmpP = address(new Permit2());
+        vm.etch(0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690, tmpP.code);
+        Permit2 permit = Permit2(0xc3e53F4d16Ae77Db1c982e75a937B9f60FE63690);
+
+        IAllowanceTransfer.PermitSingle memory permitSingle = IAllowanceTransfer.PermitSingle({
+            details: IAllowanceTransfer.PermitDetails({
+                token: 0xdAC17F958D2ee523a2206206994597C13D831ec7,
+                amount: 110000000000000000000,
+                expiration: 1707554399,
+                nonce: 0
+            }),
+            spender: 0x84eA74d481Ee0A5332c457a4d796187F6Ba67fEB,
+            sigDeadline: 1707554399
+        });
+        bytes32 digest = keccak256(abi.encodePacked('\x19\x01', permit.DOMAIN_SEPARATOR(), permitSingle.hash()));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(key, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        console2.log(vm.toString(signature));
     }
 
     function testExactInput0For1For2For3() public {

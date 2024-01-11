@@ -82,6 +82,8 @@ contract DeployTokensAndPairs is Script {
 
 contract DeployRouter is Script {
     function run() external {
+        vm.startBroadcast();
+
         Permit2 permit2 = new Permit2();
 
         RouterParameters memory params = RouterParameters({
