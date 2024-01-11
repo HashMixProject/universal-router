@@ -19,6 +19,8 @@ contract README is Script {
 
 contract DeployTokensAndPairs is Script {
     function run() external {
+        vm.startBroadcast();
+
         address user = vm.envAddress('USER');
 
         ERC20PresetMinterPauser token1 = new ERC20PresetMinterPauser('1', '1');
