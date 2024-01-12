@@ -186,7 +186,7 @@ abstract contract ZkFair is Test {
         inputs[0] = commandsData0;
         inputs[1] = abi.encodePacked(FROM, AMOUNT, true, path);
 
-        router.aggragateSwap(FROM, token3(), 1, 0, commands, inputs);
+        router.aggregateSwap(FROM, token3(), 1, 0, commands, inputs);
 
         assertEq(ERC20(token0()).balanceOf(FROM), BALANCE - AMOUNT);
         assertGt(ERC20(token3()).balanceOf(FROM), BALANCE);
@@ -218,8 +218,20 @@ abstract contract ZkFair is Test {
         bytes[] memory commandsData = new bytes[](3);
         commandsData[0] = abi.encode(permitSingle, signature);
 
+        console2.log('pair0to3', address(pairToken0Token3));
         bytes memory path = abi.encodePacked(token0(), pairToken0Token3, uint16(50), token3());
-        commandsData[1] = abi.encodePacked(Constants.MSG_SENDER, AMOUNT, true, path);
+        commandsData[1] = abi.encodePacked(FROM, AMOUNT, true, path);
+
+        console2.log('token0', token0());
+        console2.log('pair0', address(pairToken0Token1));
+        console2.log('fee', uint16(50));
+        console2.log('token1', token1());
+        console2.log('pair1', address(pairToken1Token2));
+        console2.log('fee', uint16(40));
+        console2.log('token2', token2());
+        console2.log('pair2', address(pairToken2Token3));
+        console2.log('fee', uint16(30));
+        console2.log('token3', token3());
 
         bytes memory path2 = abi.encodePacked(
             token0(),
@@ -233,12 +245,16 @@ abstract contract ZkFair is Test {
             uint16(30),
             token3()
         );
+        console2.log('path', vm.toString(path2));
 
         commandsData[2] = abi.encodePacked(FROM, AMOUNT, true, path2);
+        console2.log('from', FROM);
+        console2.log('amount', AMOUNT);
+        console2.log('data', vm.toString(commandsData[2]));
 
         uint256 token1Balance = ERC20(token1()).balanceOf(FROM);
 
-        router.aggragateSwap(FROM, token3(), 1, 0, commands, commandsData);
+        router.aggregateSwap(FROM, token3(), 1, 0, commands, commandsData);
 
         assertEq(ERC20(token0()).balanceOf(FROM), BALANCE - AMOUNT * 2);
         assertGt(ERC20(token3()).balanceOf(FROM), BALANCE);

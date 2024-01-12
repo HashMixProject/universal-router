@@ -53,7 +53,7 @@ contract UniversalRouter is IUniversalRouter, Dispatcher, RewardsCollector {
         execute(commands, inputs);
     }
 
-    function aggragateSwap(
+    function aggregateSwap(
         address recv,
         address out,
         uint256 minAmountOut,
