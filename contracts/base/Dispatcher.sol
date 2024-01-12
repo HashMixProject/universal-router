@@ -132,20 +132,16 @@ abstract contract Dispatcher is NFTImmutables, Payments, V2SwapRouter, V3SwapRou
                     // 0x08 <= command < 0x10
                 } else {
                     if (command == Commands.V2_SWAP_EXACT_IN) {
-                        // equivalent: abi.decode(inputs, (address, uint256, uint256, bool, bytes))
                         address recipient;
                         uint256 amountIn;
-                        uint256 amountOutMin;
                         bool payerIsUser;
-                        // len: 0x55
                         assembly {
                             recipient := shr(96, calldataload(inputs.offset))
                             amountIn := calldataload(add(inputs.offset, 0x14))
-                            amountOutMin := calldataload(add(inputs.offset, 0x34))
-                            payerIsUser := shr(248, calldataload(add(inputs.offset, 0x54)))
+                            payerIsUser := shr(248, calldataload(add(inputs.offset, 0x34)))
                         }
                         address payer = payerIsUser ? lockedBy : address(this);
-                        v2SwapExactInput(map(recipient), amountIn, amountOutMin, payer, 0x55, inputs);
+                        v2SwapExactInput(map(recipient), amountIn, 1, payer, 0x35, inputs);
                     } else if (command == Commands.V2_SWAP_EXACT_OUT) {
                         // equivalent: abi.decode(inputs, (address, uint256, uint256, bytes, bool))
                         address recipient;

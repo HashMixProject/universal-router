@@ -132,11 +132,11 @@ abstract contract ZkFair is Test {
             details: IAllowanceTransfer.PermitDetails({
                 token: 0xdAC17F958D2ee523a2206206994597C13D831ec7,
                 amount: 110000000000000000000,
-                expiration: 1707554399,
+                expiration: 1707620849,
                 nonce: 0
             }),
             spender: 0x84eA74d481Ee0A5332c457a4d796187F6Ba67fEB,
-            sigDeadline: 1707554399
+            sigDeadline: 1707620849
         });
         bytes32 digest = keccak256(abi.encodePacked('\x19\x01', permit.DOMAIN_SEPARATOR(), permitSingle.hash()));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(key, digest);
@@ -184,9 +184,9 @@ abstract contract ZkFair is Test {
 
         bytes[] memory inputs = new bytes[](2);
         inputs[0] = commandsData0;
-        inputs[1] = abi.encodePacked(Constants.MSG_SENDER, AMOUNT, uint256(0), true, path);
+        inputs[1] = abi.encodePacked(FROM, AMOUNT, true, path);
 
-        router.execute(commands, inputs);
+        router.aggragateSwap(FROM, token3(), 1, 0, commands, inputs);
 
         assertEq(ERC20(token0()).balanceOf(FROM), BALANCE - AMOUNT);
         assertGt(ERC20(token3()).balanceOf(FROM), BALANCE);
@@ -219,7 +219,7 @@ abstract contract ZkFair is Test {
         commandsData[0] = abi.encode(permitSingle, signature);
 
         bytes memory path = abi.encodePacked(token0(), pairToken0Token3, uint16(50), token3());
-        commandsData[1] = abi.encodePacked(Constants.MSG_SENDER, AMOUNT, uint256(0), true, path);
+        commandsData[1] = abi.encodePacked(Constants.MSG_SENDER, AMOUNT, true, path);
 
         bytes memory path2 = abi.encodePacked(
             token0(),
@@ -234,11 +234,12 @@ abstract contract ZkFair is Test {
             token3()
         );
 
-        commandsData[2] = abi.encodePacked(Constants.MSG_SENDER, AMOUNT, uint256(0), true, path2);
+        commandsData[2] = abi.encodePacked(FROM, AMOUNT, true, path2);
 
         uint256 token1Balance = ERC20(token1()).balanceOf(FROM);
 
-        router.execute(commands, commandsData);
+        router.aggragateSwap(FROM, token3(), 1, 0, commands, commandsData);
+
         assertEq(ERC20(token0()).balanceOf(FROM), BALANCE - AMOUNT * 2);
         assertGt(ERC20(token3()).balanceOf(FROM), BALANCE);
         assertEq(ERC20(token1()).balanceOf(FROM), token1Balance);

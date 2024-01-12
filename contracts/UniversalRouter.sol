@@ -10,6 +10,7 @@ import {NFTImmutables, NFTParameters} from './modules/NFTImmutables.sol';
 import {UniswapImmutables, UniswapParameters} from './modules/uniswap/UniswapImmutables.sol';
 import {Commands} from './libraries/Commands.sol';
 import {IUniversalRouter} from './interfaces/IUniversalRouter.sol';
+import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 contract UniversalRouter is IUniversalRouter, Dispatcher, RewardsCollector {
     modifier checkDeadline(uint256 deadline) {
@@ -17,7 +18,9 @@ contract UniversalRouter is IUniversalRouter, Dispatcher, RewardsCollector {
         _;
     }
 
-    constructor(RouterParameters memory params)
+    constructor(
+        RouterParameters memory params
+    )
         UniswapImmutables(
             UniswapParameters(params.v2Factory, params.v3Factory, params.pairInitCodeHash, params.poolInitCodeHash)
         )
@@ -42,12 +45,29 @@ contract UniversalRouter is IUniversalRouter, Dispatcher, RewardsCollector {
     {}
 
     /// @inheritdoc IUniversalRouter
-    function execute(bytes calldata commands, bytes[] calldata inputs, uint256 deadline)
-        external
-        payable
-        checkDeadline(deadline)
-    {
+    function execute(
+        bytes calldata commands,
+        bytes[] calldata inputs,
+        uint256 deadline
+    ) external payable checkDeadline(deadline) {
         execute(commands, inputs);
+    }
+
+    function aggragateSwap(
+        address recv,
+        address out,
+        uint256 minAmountOut,
+        uint256 deadline,
+        bytes calldata commands,
+        bytes[] calldata inputs
+    ) external payable {
+        uint256 bf = IERC20(out).balanceOf(recv);
+        if (deadline > 0 && block.timestamp > deadline) {
+            revert TransactionDeadlinePassed();
+        }
+        execute(commands, inputs);
+        uint256 af = IERC20(out).balanceOf(recv);
+        require((af - bf) >= minAmountOut, 'total too little received');
     }
 
     /// @inheritdoc Dispatcher
@@ -58,7 +78,7 @@ contract UniversalRouter is IUniversalRouter, Dispatcher, RewardsCollector {
         if (inputs.length != numCommands) revert LengthMismatch();
 
         // loop through all given commands, execute them and pass along outputs as defined
-        for (uint256 commandIndex = 0; commandIndex < numCommands;) {
+        for (uint256 commandIndex = 0; commandIndex < numCommands; ) {
             bytes1 command = commands[commandIndex];
 
             bytes calldata input = inputs[commandIndex];
