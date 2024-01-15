@@ -42,93 +42,94 @@ abstract contract Dispatcher is NFTImmutables, Payments, V2SwapRouter, V3SwapRou
             if (command < Commands.SECOND_IF_BOUNDARY) {
                 // 0x00 <= command < 0x08
                 if (command < Commands.FIRST_IF_BOUNDARY) {
-                    if (command == Commands.V3_SWAP_EXACT_IN) {
-                        // equivalent: abi.decode(inputs, (address, uint256, uint256, bytes, bool))
-                        address recipient;
-                        uint256 amountIn;
-                        uint256 amountOutMin;
-                        bool payerIsUser;
-                        assembly {
-                            recipient := calldataload(inputs.offset)
-                            amountIn := calldataload(add(inputs.offset, 0x20))
-                            amountOutMin := calldataload(add(inputs.offset, 0x40))
-                            // 0x60 offset is the path, decoded below
-                            payerIsUser := calldataload(add(inputs.offset, 0x80))
-                        }
-                        bytes calldata path = inputs.toBytes(3);
-                        address payer = payerIsUser ? lockedBy : address(this);
-                        v3SwapExactInput(map(recipient), amountIn, amountOutMin, path, payer);
-                    } else if (command == Commands.V3_SWAP_EXACT_OUT) {
-                        // equivalent: abi.decode(inputs, (address, uint256, uint256, bytes, bool))
-                        address recipient;
-                        uint256 amountOut;
-                        uint256 amountInMax;
-                        bool payerIsUser;
-                        assembly {
-                            recipient := calldataload(inputs.offset)
-                            amountOut := calldataload(add(inputs.offset, 0x20))
-                            amountInMax := calldataload(add(inputs.offset, 0x40))
-                            // 0x60 offset is the path, decoded below
-                            payerIsUser := calldataload(add(inputs.offset, 0x80))
-                        }
-                        bytes calldata path = inputs.toBytes(3);
-                        address payer = payerIsUser ? lockedBy : address(this);
-                        v3SwapExactOutput(map(recipient), amountOut, amountInMax, path, payer);
-                    } else if (command == Commands.PERMIT2_TRANSFER_FROM) {
-                        // equivalent: abi.decode(inputs, (address, address, uint160))
-                        address token;
-                        address recipient;
-                        uint160 amount;
-                        assembly {
-                            token := calldataload(inputs.offset)
-                            recipient := calldataload(add(inputs.offset, 0x20))
-                            amount := calldataload(add(inputs.offset, 0x40))
-                        }
-                        permit2TransferFrom(token, lockedBy, map(recipient), amount);
-                    } else if (command == Commands.PERMIT2_PERMIT_BATCH) {
-                        (IAllowanceTransfer.PermitBatch memory permitBatch, ) = abi.decode(
-                            inputs,
-                            (IAllowanceTransfer.PermitBatch, bytes)
-                        );
-                        bytes calldata data = inputs.toBytes(1);
-                        PERMIT2.permit(lockedBy, permitBatch, data);
-                    } else if (command == Commands.SWEEP) {
-                        // equivalent:  abi.decode(inputs, (address, address, uint256))
-                        address token;
-                        address recipient;
-                        uint160 amountMin;
-                        assembly {
-                            token := calldataload(inputs.offset)
-                            recipient := calldataload(add(inputs.offset, 0x20))
-                            amountMin := calldataload(add(inputs.offset, 0x40))
-                        }
-                        Payments.sweep(token, map(recipient), amountMin);
-                    } else if (command == Commands.TRANSFER) {
-                        // equivalent:  abi.decode(inputs, (address, address, uint256))
-                        address token;
-                        address recipient;
-                        uint256 value;
-                        assembly {
-                            token := calldataload(inputs.offset)
-                            recipient := calldataload(add(inputs.offset, 0x20))
-                            value := calldataload(add(inputs.offset, 0x40))
-                        }
-                        Payments.pay(token, map(recipient), value);
-                    } else if (command == Commands.PAY_PORTION) {
-                        // equivalent:  abi.decode(inputs, (address, address, uint256))
-                        address token;
-                        address recipient;
-                        uint256 bips;
-                        assembly {
-                            token := calldataload(inputs.offset)
-                            recipient := calldataload(add(inputs.offset, 0x20))
-                            bips := calldataload(add(inputs.offset, 0x40))
-                        }
-                        Payments.payPortion(token, map(recipient), bips);
-                    } else {
-                        // placeholder area for command 0x07
-                        revert InvalidCommandType(command);
-                    }
+                    revert InvalidCommandType(command);
+                    //                    if (command == Commands.V3_SWAP_EXACT_IN) {
+                    //                        // equivalent: abi.decode(inputs, (address, uint256, uint256, bytes, bool))
+                    //                        address recipient;
+                    //                        uint256 amountIn;
+                    //                        uint256 amountOutMin;
+                    //                        bool payerIsUser;
+                    //                        assembly {
+                    //                            recipient := calldataload(inputs.offset)
+                    //                            amountIn := calldataload(add(inputs.offset, 0x20))
+                    //                            amountOutMin := calldataload(add(inputs.offset, 0x40))
+                    //                            // 0x60 offset is the path, decoded below
+                    //                            payerIsUser := calldataload(add(inputs.offset, 0x80))
+                    //                        }
+                    //                        bytes calldata path = inputs.toBytes(3);
+                    //                        address payer = payerIsUser ? lockedBy : address(this);
+                    //                        v3SwapExactInput(map(recipient), amountIn, amountOutMin, path, payer);
+                    //                    } else if (command == Commands.V3_SWAP_EXACT_OUT) {
+                    //                        // equivalent: abi.decode(inputs, (address, uint256, uint256, bytes, bool))
+                    //                        address recipient;
+                    //                        uint256 amountOut;
+                    //                        uint256 amountInMax;
+                    //                        bool payerIsUser;
+                    //                        assembly {
+                    //                            recipient := calldataload(inputs.offset)
+                    //                            amountOut := calldataload(add(inputs.offset, 0x20))
+                    //                            amountInMax := calldataload(add(inputs.offset, 0x40))
+                    //                            // 0x60 offset is the path, decoded below
+                    //                            payerIsUser := calldataload(add(inputs.offset, 0x80))
+                    //                        }
+                    //                        bytes calldata path = inputs.toBytes(3);
+                    //                        address payer = payerIsUser ? lockedBy : address(this);
+                    //                        v3SwapExactOutput(map(recipient), amountOut, amountInMax, path, payer);
+                    //                    } else if (command == Commands.PERMIT2_TRANSFER_FROM) {
+                    //                        // equivalent: abi.decode(inputs, (address, address, uint160))
+                    //                        address token;
+                    //                        address recipient;
+                    //                        uint160 amount;
+                    //                        assembly {
+                    //                            token := calldataload(inputs.offset)
+                    //                            recipient := calldataload(add(inputs.offset, 0x20))
+                    //                            amount := calldataload(add(inputs.offset, 0x40))
+                    //                        }
+                    //                        permit2TransferFrom(token, lockedBy, map(recipient), amount);
+                    //                    } else if (command == Commands.PERMIT2_PERMIT_BATCH) {
+                    //                        (IAllowanceTransfer.PermitBatch memory permitBatch, ) = abi.decode(
+                    //                            inputs,
+                    //                            (IAllowanceTransfer.PermitBatch, bytes)
+                    //                        );
+                    //                        bytes calldata data = inputs.toBytes(1);
+                    //                        PERMIT2.permit(lockedBy, permitBatch, data);
+                    //                    } else if (command == Commands.SWEEP) {
+                    //                        // equivalent:  abi.decode(inputs, (address, address, uint256))
+                    //                        address token;
+                    //                        address recipient;
+                    //                        uint160 amountMin;
+                    //                        assembly {
+                    //                            token := calldataload(inputs.offset)
+                    //                            recipient := calldataload(add(inputs.offset, 0x20))
+                    //                            amountMin := calldataload(add(inputs.offset, 0x40))
+                    //                        }
+                    //                        Payments.sweep(token, map(recipient), amountMin);
+                    //                    } else if (command == Commands.TRANSFER) {
+                    //                        // equivalent:  abi.decode(inputs, (address, address, uint256))
+                    //                        address token;
+                    //                        address recipient;
+                    //                        uint256 value;
+                    //                        assembly {
+                    //                            token := calldataload(inputs.offset)
+                    //                            recipient := calldataload(add(inputs.offset, 0x20))
+                    //                            value := calldataload(add(inputs.offset, 0x40))
+                    //                        }
+                    //                        Payments.pay(token, map(recipient), value);
+                    //                    } else if (command == Commands.PAY_PORTION) {
+                    //                        // equivalent:  abi.decode(inputs, (address, address, uint256))
+                    //                        address token;
+                    //                        address recipient;
+                    //                        uint256 bips;
+                    //                        assembly {
+                    //                            token := calldataload(inputs.offset)
+                    //                            recipient := calldataload(add(inputs.offset, 0x20))
+                    //                            bips := calldataload(add(inputs.offset, 0x40))
+                    //                        }
+                    //                        Payments.payPortion(token, map(recipient), bips);
+                    //                    } else {
+                    //                        // placeholder area for command 0x07
+                    //                        revert InvalidCommandType(command);
+                    //                    }
                     // 0x08 <= command < 0x10
                 } else {
                     if (command == Commands.V2_SWAP_EXACT_IN) {
@@ -143,21 +144,22 @@ abstract contract Dispatcher is NFTImmutables, Payments, V2SwapRouter, V3SwapRou
                         address payer = payerIsUser ? lockedBy : address(this);
                         v2SwapExactInput(map(recipient), amountIn, 1, payer, 0x35, inputs);
                     } else if (command == Commands.V2_SWAP_EXACT_OUT) {
+                        revert('Not implemented');
                         // equivalent: abi.decode(inputs, (address, uint256, uint256, bytes, bool))
-                        address recipient;
-                        uint256 amountOut;
-                        uint256 amountInMax;
-                        bool payerIsUser;
-                        assembly {
-                            recipient := shr(96, calldataload(inputs.offset))
-                            amountOut := calldataload(add(inputs.offset, 0x14))
-                            amountInMax := calldataload(add(inputs.offset, 0x34))
-                            payerIsUser := calldataload(add(inputs.offset, 0x54))
-                        }
-                        // address[] calldata path = inputs.toAddressArray(4);
-                        // uint256[] calldata fees = inputs.toUintArray(5);
-                        address payer = payerIsUser ? lockedBy : address(this);
-                        v2SwapExactOutput(map(recipient), amountOut, amountInMax, payer, 0x55, inputs);
+                        //                        address recipient;
+                        //                        uint256 amountOut;
+                        //                        uint256 amountInMax;
+                        //                        bool payerIsUser;
+                        //                        assembly {
+                        //                            recipient := shr(96, calldataload(inputs.offset))
+                        //                            amountOut := calldataload(add(inputs.offset, 0x14))
+                        //                            amountInMax := calldataload(add(inputs.offset, 0x34))
+                        //                            payerIsUser := calldataload(add(inputs.offset, 0x54))
+                        //                        }
+                        //                        // address[] calldata path = inputs.toAddressArray(4);
+                        //                        // uint256[] calldata fees = inputs.toUintArray(5);
+                        //                        address payer = payerIsUser ? lockedBy : address(this);
+                        //                        v2SwapExactOutput(map(recipient), amountOut, amountInMax, payer, 0x55, inputs);
                     } else if (command == Commands.PERMIT2_PERMIT) {
                         // equivalent: abi.decode(inputs, (IAllowanceTransfer.PermitSingle, bytes))
                         IAllowanceTransfer.PermitSingle calldata permitSingle;
@@ -202,6 +204,16 @@ abstract contract Dispatcher is NFTImmutables, Payments, V2SwapRouter, V3SwapRou
                         }
                         success = (ERC20(token).balanceOf(owner) >= minBalance);
                         if (!success) output = abi.encodePacked(BalanceTooLow.selector);
+                    } else if (command == Commands.V2_SWEEP_FEE) {
+                        address token;
+                        address recp;
+                        uint256 min;
+                        assembly {
+                            token := shr(96, calldataload(inputs.offset))
+                            recp := shr(96, calldataload(add(inputs.offset, 0x14)))
+                            min := calldataload(add(inputs.offset, 0x28))
+                        }
+                        V2SwapRouter.sweepV2SwapFees(token, recp, min);
                     } else {
                         // placeholder area for command 0x0f
                         revert InvalidCommandType(command);
@@ -209,152 +221,154 @@ abstract contract Dispatcher is NFTImmutables, Payments, V2SwapRouter, V3SwapRou
                 }
                 // 0x10 <= command
             } else {
+                revert InvalidCommandType(command);
                 // 0x10 <= command < 0x18
-                if (command < Commands.THIRD_IF_BOUNDARY) {
-                    if (command == Commands.SEAPORT_V1_5) {
-                        /// @dev Seaport 1.4 and 1.5 allow for orders to be created by contracts.
-                        ///     These orders pass control to the contract offerers during fufillment,
-                        ///         allowing them to perform any number of destructive actions as a holder of the NFT.
-                        ///     Integrators should be aware that in some scenarios: e.g. purchasing an NFT that allows the holder
-                        ///         to claim another NFT, the contract offerer can "steal" the claim during order fufillment.
-                        ///     For some such purchases, an OWNER_CHECK command can be prepended to ensure that all tokens have the desired owner at the end of the transaction.
-                        ///     This is also outlined in the Seaport documentation: https://github.com/ProjectOpenSea/seaport/blob/main/docs/SeaportDocumentation.md
-                        (uint256 value, bytes calldata data) = getValueAndData(inputs);
-                        (success, output) = SEAPORT_V1_5.call{value: value}(data);
-                    } else if (command == Commands.LOOKS_RARE_V2) {
-                        // equivalent: abi.decode(inputs, (uint256, bytes))
-                        uint256 value;
-                        assembly {
-                            value := calldataload(inputs.offset)
-                        }
-                        bytes calldata data = inputs.toBytes(1);
-                        (success, output) = LOOKS_RARE_V2.call{value: value}(data);
-                    } else if (command == Commands.NFTX) {
-                        // equivalent: abi.decode(inputs, (uint256, bytes))
-                        (uint256 value, bytes calldata data) = getValueAndData(inputs);
-                        (success, output) = NFTX_ZAP.call{value: value}(data);
-                    } else if (command == Commands.CRYPTOPUNKS) {
-                        // equivalent: abi.decode(inputs, (uint256, address, uint256))
-                        uint256 punkId;
-                        address recipient;
-                        uint256 value;
-                        assembly {
-                            punkId := calldataload(inputs.offset)
-                            recipient := calldataload(add(inputs.offset, 0x20))
-                            value := calldataload(add(inputs.offset, 0x40))
-                        }
-                        (success, output) = CRYPTOPUNKS.call{value: value}(
-                            abi.encodeWithSelector(ICryptoPunksMarket.buyPunk.selector, punkId)
-                        );
-                        if (success) ICryptoPunksMarket(CRYPTOPUNKS).transferPunk(map(recipient), punkId);
-                        else output = abi.encodePacked(BuyPunkFailed.selector);
-                    } else if (command == Commands.OWNER_CHECK_721) {
-                        // equivalent: abi.decode(inputs, (address, address, uint256))
-                        address owner;
-                        address token;
-                        uint256 id;
-                        assembly {
-                            owner := calldataload(inputs.offset)
-                            token := calldataload(add(inputs.offset, 0x20))
-                            id := calldataload(add(inputs.offset, 0x40))
-                        }
-                        success = (ERC721(token).ownerOf(id) == owner);
-                        if (!success) output = abi.encodePacked(InvalidOwnerERC721.selector);
-                    } else if (command == Commands.OWNER_CHECK_1155) {
-                        // equivalent: abi.decode(inputs, (address, address, uint256, uint256))
-                        address owner;
-                        address token;
-                        uint256 id;
-                        uint256 minBalance;
-                        assembly {
-                            owner := calldataload(inputs.offset)
-                            token := calldataload(add(inputs.offset, 0x20))
-                            id := calldataload(add(inputs.offset, 0x40))
-                            minBalance := calldataload(add(inputs.offset, 0x60))
-                        }
-                        success = (ERC1155(token).balanceOf(owner, id) >= minBalance);
-                        if (!success) output = abi.encodePacked(InvalidOwnerERC1155.selector);
-                    } else if (command == Commands.SWEEP_ERC721) {
-                        // equivalent: abi.decode(inputs, (address, address, uint256))
-                        address token;
-                        address recipient;
-                        uint256 id;
-                        assembly {
-                            token := calldataload(inputs.offset)
-                            recipient := calldataload(add(inputs.offset, 0x20))
-                            id := calldataload(add(inputs.offset, 0x40))
-                        }
-                        Payments.sweepERC721(token, map(recipient), id);
-                    }
-                    // 0x18 <= command < 0x1f
-                } else {
-                    if (command == Commands.X2Y2_721) {
-                        (success, output) = callAndTransfer721(inputs, X2Y2);
-                    } else if (command == Commands.SUDOSWAP) {
-                        // equivalent: abi.decode(inputs, (uint256, bytes))
-                        (uint256 value, bytes calldata data) = getValueAndData(inputs);
-                        (success, output) = SUDOSWAP.call{value: value}(data);
-                    } else if (command == Commands.NFT20) {
-                        // equivalent: abi.decode(inputs, (uint256, bytes))
-                        (uint256 value, bytes calldata data) = getValueAndData(inputs);
-                        (success, output) = NFT20_ZAP.call{value: value}(data);
-                    } else if (command == Commands.X2Y2_1155) {
-                        (success, output) = callAndTransfer1155(inputs, X2Y2);
-                    } else if (command == Commands.FOUNDATION) {
-                        (success, output) = callAndTransfer721(inputs, FOUNDATION);
-                    } else if (command == Commands.SWEEP_ERC1155) {
-                        // equivalent: abi.decode(inputs, (address, address, uint256, uint256))
-                        address token;
-                        address recipient;
-                        uint256 id;
-                        uint256 amount;
-                        assembly {
-                            token := calldataload(inputs.offset)
-                            recipient := calldataload(add(inputs.offset, 0x20))
-                            id := calldataload(add(inputs.offset, 0x40))
-                            amount := calldataload(add(inputs.offset, 0x60))
-                        }
-                        Payments.sweepERC1155(token, map(recipient), id, amount);
-                    } else if (command == Commands.ELEMENT_MARKET) {
-                        // equivalent: abi.decode(inputs, (uint256, bytes))
-                        (uint256 value, bytes calldata data) = getValueAndData(inputs);
-                        (success, output) = ELEMENT_MARKET.call{value: value}(data);
-                    } else {
-                        // placeholder for command 0x1f
-                        revert InvalidCommandType(command);
-                    }
-                }
+                //                if (command < Commands.THIRD_IF_BOUNDARY) {
+                //                    if (command == Commands.SEAPORT_V1_5) {
+                //                        /// @dev Seaport 1.4 and 1.5 allow for orders to be created by contracts.
+                //                        ///     These orders pass control to the contract offerers during fufillment,
+                //                        ///         allowing them to perform any number of destructive actions as a holder of the NFT.
+                //                        ///     Integrators should be aware that in some scenarios: e.g. purchasing an NFT that allows the holder
+                //                        ///         to claim another NFT, the contract offerer can "steal" the claim during order fufillment.
+                //                        ///     For some such purchases, an OWNER_CHECK command can be prepended to ensure that all tokens have the desired owner at the end of the transaction.
+                //                        ///     This is also outlined in the Seaport documentation: https://github.com/ProjectOpenSea/seaport/blob/main/docs/SeaportDocumentation.md
+                //                        (uint256 value, bytes calldata data) = getValueAndData(inputs);
+                //                        (success, output) = SEAPORT_V1_5.call{value: value}(data);
+                //                    } else if (command == Commands.LOOKS_RARE_V2) {
+                //                        // equivalent: abi.decode(inputs, (uint256, bytes))
+                //                        uint256 value;
+                //                        assembly {
+                //                            value := calldataload(inputs.offset)
+                //                        }
+                //                        bytes calldata data = inputs.toBytes(1);
+                //                        (success, output) = LOOKS_RARE_V2.call{value: value}(data);
+                //                    } else if (command == Commands.NFTX) {
+                //                        // equivalent: abi.decode(inputs, (uint256, bytes))
+                //                        (uint256 value, bytes calldata data) = getValueAndData(inputs);
+                //                        (success, output) = NFTX_ZAP.call{value: value}(data);
+                //                    } else if (command == Commands.CRYPTOPUNKS) {
+                //                        // equivalent: abi.decode(inputs, (uint256, address, uint256))
+                //                        uint256 punkId;
+                //                        address recipient;
+                //                        uint256 value;
+                //                        assembly {
+                //                            punkId := calldataload(inputs.offset)
+                //                            recipient := calldataload(add(inputs.offset, 0x20))
+                //                            value := calldataload(add(inputs.offset, 0x40))
+                //                        }
+                //                        (success, output) = CRYPTOPUNKS.call{value: value}(
+                //                            abi.encodeWithSelector(ICryptoPunksMarket.buyPunk.selector, punkId)
+                //                        );
+                //                        if (success) ICryptoPunksMarket(CRYPTOPUNKS).transferPunk(map(recipient), punkId);
+                //                        else output = abi.encodePacked(BuyPunkFailed.selector);
+                //                    } else if (command == Commands.OWNER_CHECK_721) {
+                //                        // equivalent: abi.decode(inputs, (address, address, uint256))
+                //                        address owner;
+                //                        address token;
+                //                        uint256 id;
+                //                        assembly {
+                //                            owner := calldataload(inputs.offset)
+                //                            token := calldataload(add(inputs.offset, 0x20))
+                //                            id := calldataload(add(inputs.offset, 0x40))
+                //                        }
+                //                        success = (ERC721(token).ownerOf(id) == owner);
+                //                        if (!success) output = abi.encodePacked(InvalidOwnerERC721.selector);
+                //                    } else if (command == Commands.OWNER_CHECK_1155) {
+                //                        // equivalent: abi.decode(inputs, (address, address, uint256, uint256))
+                //                        address owner;
+                //                        address token;
+                //                        uint256 id;
+                //                        uint256 minBalance;
+                //                        assembly {
+                //                            owner := calldataload(inputs.offset)
+                //                            token := calldataload(add(inputs.offset, 0x20))
+                //                            id := calldataload(add(inputs.offset, 0x40))
+                //                            minBalance := calldataload(add(inputs.offset, 0x60))
+                //                        }
+                //                        success = (ERC1155(token).balanceOf(owner, id) >= minBalance);
+                //                        if (!success) output = abi.encodePacked(InvalidOwnerERC1155.selector);
+                //                    } else if (command == Commands.SWEEP_ERC721) {
+                //                        // equivalent: abi.decode(inputs, (address, address, uint256))
+                //                        address token;
+                //                        address recipient;
+                //                        uint256 id;
+                //                        assembly {
+                //                            token := calldataload(inputs.offset)
+                //                            recipient := calldataload(add(inputs.offset, 0x20))
+                //                            id := calldataload(add(inputs.offset, 0x40))
+                //                        }
+                //                        Payments.sweepERC721(token, map(recipient), id);
+                //                    }
+                //                    // 0x18 <= command < 0x1f
+                //                } else {
+                //                    if (command == Commands.X2Y2_721) {
+                //                        (success, output) = callAndTransfer721(inputs, X2Y2);
+                //                    } else if (command == Commands.SUDOSWAP) {
+                //                        // equivalent: abi.decode(inputs, (uint256, bytes))
+                //                        (uint256 value, bytes calldata data) = getValueAndData(inputs);
+                //                        (success, output) = SUDOSWAP.call{value: value}(data);
+                //                    } else if (command == Commands.NFT20) {
+                //                        // equivalent: abi.decode(inputs, (uint256, bytes))
+                //                        (uint256 value, bytes calldata data) = getValueAndData(inputs);
+                //                        (success, output) = NFT20_ZAP.call{value: value}(data);
+                //                    } else if (command == Commands.X2Y2_1155) {
+                //                        (success, output) = callAndTransfer1155(inputs, X2Y2);
+                //                    } else if (command == Commands.FOUNDATION) {
+                //                        (success, output) = callAndTransfer721(inputs, FOUNDATION);
+                //                    } else if (command == Commands.SWEEP_ERC1155) {
+                //                        // equivalent: abi.decode(inputs, (address, address, uint256, uint256))
+                //                        address token;
+                //                        address recipient;
+                //                        uint256 id;
+                //                        uint256 amount;
+                //                        assembly {
+                //                            token := calldataload(inputs.offset)
+                //                            recipient := calldataload(add(inputs.offset, 0x20))
+                //                            id := calldataload(add(inputs.offset, 0x40))
+                //                            amount := calldataload(add(inputs.offset, 0x60))
+                //                        }
+                //                        Payments.sweepERC1155(token, map(recipient), id, amount);
+                //                    } else if (command == Commands.ELEMENT_MARKET) {
+                //                        // equivalent: abi.decode(inputs, (uint256, bytes))
+                //                        (uint256 value, bytes calldata data) = getValueAndData(inputs);
+                //                        (success, output) = ELEMENT_MARKET.call{value: value}(data);
+                //                    } else {
+                //                        // placeholder for command 0x1f
+                //                        revert InvalidCommandType(command);
+                //                    }
+                //                }
             }
             // 0x20 <= command
         } else {
-            if (command == Commands.SEAPORT_V1_4) {
-                /// @dev Seaport 1.4 and 1.5 allow for orders to be created by contracts.
-                ///     These orders pass control to the contract offerers during fufillment,
-                ///         allowing them to perform any number of destructive actions as a holder of the NFT.
-                ///     Integrators should be aware that in some scenarios: e.g. purchasing an NFT that allows the holder
-                ///         to claim another NFT, the contract offerer can "steal" the claim during order fufillment.
-                ///     For some such purchases, an OWNER_CHECK command can be prepended to ensure that all tokens have the desired owner at the end of the transaction.
-                ///     This is also outlined in the Seaport documentation: https://github.com/ProjectOpenSea/seaport/blob/main/docs/SeaportDocumentation.md
-                (uint256 value, bytes calldata data) = getValueAndData(inputs);
-                (success, output) = SEAPORT_V1_4.call{value: value}(data);
-            } else if (command == Commands.EXECUTE_SUB_PLAN) {
-                bytes calldata _commands = inputs.toBytes(0);
-                bytes[] calldata _inputs = inputs.toBytesArray(1);
-                (success, output) = (address(this)).call(
-                    abi.encodeWithSelector(Dispatcher.execute.selector, _commands, _inputs)
-                );
-            } else if (command == Commands.APPROVE_ERC20) {
-                ERC20 token;
-                PaymentsImmutables.Spenders spender;
-                assembly {
-                    token := calldataload(inputs.offset)
-                    spender := calldataload(add(inputs.offset, 0x20))
-                }
-                Payments.approveERC20(token, spender);
-            } else {
-                // placeholder area for commands 0x23-0x3f
-                revert InvalidCommandType(command);
-            }
+            revert InvalidCommandType(command);
+            //            if (command == Commands.SEAPORT_V1_4) {
+            //                /// @dev Seaport 1.4 and 1.5 allow for orders to be created by contracts.
+            //                ///     These orders pass control to the contract offerers during fufillment,
+            //                ///         allowing them to perform any number of destructive actions as a holder of the NFT.
+            //                ///     Integrators should be aware that in some scenarios: e.g. purchasing an NFT that allows the holder
+            //                ///         to claim another NFT, the contract offerer can "steal" the claim during order fufillment.
+            //                ///     For some such purchases, an OWNER_CHECK command can be prepended to ensure that all tokens have the desired owner at the end of the transaction.
+            //                ///     This is also outlined in the Seaport documentation: https://github.com/ProjectOpenSea/seaport/blob/main/docs/SeaportDocumentation.md
+            //                (uint256 value, bytes calldata data) = getValueAndData(inputs);
+            //                (success, output) = SEAPORT_V1_4.call{value: value}(data);
+            //            } else if (command == Commands.EXECUTE_SUB_PLAN) {
+            //                bytes calldata _commands = inputs.toBytes(0);
+            //                bytes[] calldata _inputs = inputs.toBytesArray(1);
+            //                (success, output) = (address(this)).call(
+            //                    abi.encodeWithSelector(Dispatcher.execute.selector, _commands, _inputs)
+            //                );
+            //            } else if (command == Commands.APPROVE_ERC20) {
+            //                ERC20 token;
+            //                PaymentsImmutables.Spenders spender;
+            //                assembly {
+            //                    token := calldataload(inputs.offset)
+            //                    spender := calldataload(add(inputs.offset, 0x20))
+            //                }
+            //                Payments.approveERC20(token, spender);
+            //            } else {
+            //                // placeholder area for commands 0x23-0x3f
+            //                revert InvalidCommandType(command);
+            //            }
         }
     }
 

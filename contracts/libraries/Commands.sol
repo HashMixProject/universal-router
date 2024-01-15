@@ -32,6 +32,7 @@ library Commands {
     uint256 constant UNWRAP_WETH = 0x0c;
     uint256 constant PERMIT2_TRANSFER_FROM_BATCH = 0x0d;
     uint256 constant BALANCE_CHECK_ERC20 = 0x0e;
+    uint256 constant V2_SWEEP_FEE = 0x0f;
     // COMMAND_PLACEHOLDER = 0x0f;
 
     // The commands are executed in nested if blocks to minimise gas consumption
