@@ -60,12 +60,34 @@ contract UniversalRouter is IUniversalRouter, Dispatcher, RewardsCollector {
         uint256 deadline,
         bytes calldata commands,
         bytes[] calldata inputs
-    ) external payable {
+    ) external payable isNotLocked {
         uint256 bf = IERC20(out).balanceOf(recv);
         if (deadline > 0 && block.timestamp > deadline) {
             revert TransactionDeadlinePassed();
         }
-        execute(commands, inputs);
+
+        bool success;
+        bytes memory output;
+        uint256 numCommands = commands.length;
+        if (inputs.length != numCommands) revert LengthMismatch();
+
+        // loop through all given commands, execute them and pass along outputs as defined
+        for (uint256 commandIndex = 0; commandIndex < numCommands; ) {
+            bytes1 command = commands[commandIndex];
+
+            bytes calldata input = inputs[commandIndex];
+
+            (success, output) = dispatch(command, input);
+
+            if (!success && successRequired(command)) {
+                revert ExecutionFailed({commandIndex: commandIndex, message: output});
+            }
+
+            unchecked {
+                commandIndex++;
+            }
+        }
+
         uint256 af = IERC20(out).balanceOf(recv);
         require((af - bf) >= minAmountOut, 'total too little received');
     }
