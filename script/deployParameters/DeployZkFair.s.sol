@@ -8,7 +8,7 @@ contract DeployBase is DeployUniversalRouter {
     function setUp() public override {
         params = RouterParameters({
             permit2: UNSUPPORTED_PROTOCOL,
-            weth9: UNSUPPORTED_PROTOCOL,
+            weth9: 0xD33Db7EC50A98164cC865dfaa64666906d79319C,
             seaportV1_5: UNSUPPORTED_PROTOCOL,
             seaportV1_4: UNSUPPORTED_PROTOCOL,
             openseaConduit: UNSUPPORTED_PROTOCOL,

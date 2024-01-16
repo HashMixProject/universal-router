@@ -17,18 +17,20 @@ contract README is Script {
     }
 }
 
-contract DeployTokensAndPairs is Script {
+contract DeployLocal is Script {
     function run() external {
         vm.startBroadcast();
 
         address user = vm.envAddress('USER');
 
+        ERC20PresetMinterPauser wusdc = new ERC20PresetMinterPauser('wusdc', 'wusdc');
         ERC20PresetMinterPauser token1 = new ERC20PresetMinterPauser('1', '1');
         ERC20PresetMinterPauser token2 = new ERC20PresetMinterPauser('2', '2');
         ERC20PresetMinterPauser token3 = new ERC20PresetMinterPauser('3', '3');
         ERC20PresetMinterPauser token4 = new ERC20PresetMinterPauser('4', '4');
         ERC20PresetMinterPauser token5 = new ERC20PresetMinterPauser('5', '5');
 
+        console2.log('wusdc', address(wusdc));
         console2.log('token1', address(token1));
         console2.log('token2', address(token2));
         console2.log('token3', address(token3));
@@ -41,6 +43,12 @@ contract DeployTokensAndPairs is Script {
         address _f = deployCode('UniswapV2Factory.sol:UniswapV2Factory', abi.encode(address(0)));
         IUniswapV2Factory factory = IUniswapV2Factory(_f);
         console2.log('factory', _f);
+
+        address pairWUSDC = factory.createPair(address(wusdc), address(token1));
+        token1.mint(pairWUSDC, 1000 ether);
+        token2.mint(pairWUSDC, 1000 ether);
+        IUniswapV2Pair(pairWUSDC).sync();
+        console2.log('pair_wusdcto1', pairWUSDC);
 
         address pair1 = factory.createPair(address(token1), address(token2));
         token1.mint(pair1, 1000 ether);
@@ -77,18 +85,12 @@ contract DeployTokensAndPairs is Script {
         token5.mint(pair6, 1000 ether);
         IUniswapV2Pair(pair6).sync();
         console2.log('pair_2to5', pair6);
-    }
-}
-
-contract DeployRouter is Script {
-    function run() external {
-        vm.startBroadcast();
 
         Permit2 permit2 = new Permit2();
 
         RouterParameters memory params = RouterParameters({
             permit2: address(permit2),
-            weth9: address(0),
+            weth9: address(wusdc),
             seaportV1_5: address(0),
             seaportV1_4: address(0),
             openseaConduit: address(0),
