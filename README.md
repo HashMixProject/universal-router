@@ -234,6 +234,26 @@ If you are only concerned with investigating gas diffs, you can run this command
 yarn test:gas
 ```
 
+### To Deploy Local
+
+Fish:
+
+```fish
+set -x PRIVATEKEY <PRIVATEKEY>
+set -x USER <USER Address>
+```
+
+Zsh:
+
+```sh
+export PRIVATEKEY=<PRIVATEKEY>
+export USER=<USER Address>
+```
+
+```console
+forge script --private-key $PRIVATEKEY --broadcast --legacy --fork-url http://127.0.0.1:8545 script/DeployLocal.s.sol:DeployLocal
+```
+
 ### To Deploy
 
 Fill out parameters in `script/deployParameters/Deploy<network>.s.sol`
