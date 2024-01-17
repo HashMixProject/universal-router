@@ -10,6 +10,7 @@ import {Permit2} from 'permit2/src/Permit2.sol';
 import {ERC20PresetMinterPauser} from '@openzeppelin/contracts/token/ERC20/presets/ERC20PresetMinterPauser.sol';
 import {IUniswapV2Factory} from '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 import {IUniswapV2Pair} from '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
+import {WETH} from 'solmate/src/tokens/WETH.sol';
 
 contract README is Script {
     function run() external view {
@@ -23,7 +24,7 @@ contract DeployLocal is Script {
 
         address user = vm.envAddress('USER');
 
-        ERC20PresetMinterPauser wusdc = new ERC20PresetMinterPauser('wusdc', 'wusdc');
+        WETH wusdc = new WETH();
         ERC20PresetMinterPauser token1 = new ERC20PresetMinterPauser('1', '1');
         ERC20PresetMinterPauser token2 = new ERC20PresetMinterPauser('2', '2');
         ERC20PresetMinterPauser token3 = new ERC20PresetMinterPauser('3', '3');
@@ -45,8 +46,9 @@ contract DeployLocal is Script {
         console2.log('factory', _f);
 
         address pairWUSDC = factory.createPair(address(wusdc), address(token1));
+        wusdc.deposit{value: 1000 ether}();
+        wusdc.transfer(pairWUSDC, 1000 ether);
         token1.mint(pairWUSDC, 1000 ether);
-        token2.mint(pairWUSDC, 1000 ether);
         IUniswapV2Pair(pairWUSDC).sync();
         console2.log('pair_wusdcto1', pairWUSDC);
 

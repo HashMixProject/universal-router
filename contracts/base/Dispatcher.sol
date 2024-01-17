@@ -197,12 +197,14 @@ abstract contract Dispatcher is NFTImmutables, Payments, V2SwapRouter, V3SwapRou
                         address owner;
                         address token;
                         uint256 minBalance;
+                        uint256 balanceBefore;
                         assembly {
                             owner := calldataload(inputs.offset)
                             token := calldataload(add(inputs.offset, 0x20))
                             minBalance := calldataload(add(inputs.offset, 0x40))
+                            balanceBefore := calldataload(add(inputs.offset, 0x60))
                         }
-                        success = (ERC20(token).balanceOf(owner) >= minBalance);
+                        success = (ERC20(token).balanceOf(owner) >= (minBalance + balanceBefore));
                         if (!success) output = abi.encodePacked(BalanceTooLow.selector);
                     } else if (command == Commands.V2_SWEEP_FEE) {
                         address token;
